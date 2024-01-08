@@ -8,8 +8,6 @@ tagsInput <- function(
         class = "form-control input-text input-tag",
         value = value,
         placeholder = placeholder,
-        if(!is.null(max)) {
-        },
 
         # JS depedency
         htmltools::htmlDependency(
@@ -22,7 +20,7 @@ tagsInput <- function(
     )
     
     if(!is.null(max)) {
-      input <- htmltools::tagAppendAttributes(input, `data-max` = max)
+      input <- htmltools::tagAppendAttributes(input)
     }
     
     # details and remove button
