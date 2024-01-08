@@ -7,7 +7,7 @@ tidyTaxUI <- function(id) {
         width = 4, 
         h3("上传"),
         fileInput(inputId = ns("file"), label = "上传税费表格Excel文件", 
-                  multiple = FALSE, accept = c(".xls", ".xlsx", ".pdf")),
+                  multiple = FALSE, accept = ".pdf"),
         htmlOutput(ns("tidyUI")),
         htmlOutput(ns("filterCheckboxUI")),
         htmlOutput(ns("exportUI")),
@@ -58,16 +58,56 @@ tidyTaxServer <- function(id) {
             }
             tags$iframe(
               style = "height:600px; width:100%;", 
-              src = gsub("/", "\\\\", input$file$name)
+              src = input$file$name
             )
           })
         }
     })
     
-    n <- reactive(get_table_pages(paste("www/", isolate(input$file$name), sep = .Platform$file.sep)))
+    n <- reactive({
+      # implement Progress
+      progress <- shiny::Progress$new()
+      progress$set(message = "识别表格：", value = 0)
+      on.exit(progress$close())
+      updateProgress <- function(
+    value = NULL, 
+    detail = NULL
+    # reset = NULL
+      ) {
+        if(is.null(value)) {
+          value <- progress$getValue()
+          value <- value + (progress$getMax() - value) / 4
+        }
+        # if(reset) {
+        #   value <- progress$getValue() + 0.5
+        #   progress$set(value = value, detail = detail)
+        # }
+        progress$set(value = value, detail = detail)
+      }
+      get_table_pages(
+        file = paste("www/", isolate(input$file$name), sep = .Platform$file.sep), 
+        updateProgress = updateProgress 
+        # resetProgress = TRUE
+      )
+    })
     tidied <- reactive({
       req(input$file)
-      tidyup(file = paste("www/", input$file$name, sep = .Platform$file.sep), page = n()) %>%
+      progress <- shiny::Progress$new()
+      progress$set(message = "整理数据：", value = 0)
+      on.exit(progress$close())
+      updateProgress <- function(
+    value = NULL, 
+    detail = NULL
+    # reset = NULL
+      ) {
+        if(is.null(value)) {
+          value <- progress$getValue()
+          value <- value + (progress$getMax() - value) / 4
+        }
+        progress$set(value = value, detail = detail)
+      }
+      
+      tidyup(file = input$file$datapath, page = n(), updateProgress = updateProgress) %>%
         rename(
           "Товар" = id,
           "Код товара" = hs_code,   
@@ -165,7 +205,7 @@ tidyTaxServer <- function(id) {
     
     export_file_name <- reactive({
       if(nchar(input$filename) != 0) {
-        gsub(paste0(id, "-"), "", input$filename())
+        gsub(paste0(id, "-"), "", input$filename)
       } else {
         "导出"
       }
@@ -173,12 +213,15 @@ tidyTaxServer <- function(id) {
     
     output$export <- downloadHandler(
       filename = function() paste0(export_file_name(), ".xlsx"), 
-      content = function(file) openxlsx::write.xlsx(x = tidied_rename(), file = file)
+      content = function(file) {
+        openxlsx::write.xlsx(x = tidied_rename(), file = file)
+      }
     )
     
     # session is an environment object and treated as reactives
     session$onSessionEnded(function() {
-      file.remove(paste("www", isolate(session$input$file$name), sep = .Platform$file.sep))
+      tax <- paste("www", isolate(session$input$file$name), sep = .Platform$file.sep)
+      if(file.exists(tax)) file.remove(tax)
     })
   })
 }

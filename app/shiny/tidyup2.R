@@ -1,7 +1,22 @@
-get_table_pages <- function(file) {
+get_table_pages <- function(
+    file, 
+    updateProgress = NULL 
+    # resetProgress
+    ) {
   p <- c()
   for(i in seq_len(get_n_pages(file))) {
     if(length(extract_tables(file, i)) != 0) {
+      # update Progress
+      if(is.function(updateProgress)) {
+        text <- sprintf("%d/%d", i, i)
+        # if(resetProgress) {
+        #   updateProgress(value = 0, detail = text, reset = resetProgress)
+        # }
+        updateProgress(
+          value = i, detail = text 
+          # reset = resetProgress
+        )
+      }
       p <- c(p, i)
     } else next
   }
@@ -48,7 +63,7 @@ tidy_page <- function(file, page) {
 }
 
 
-tidyup <- function(file, page = NULL) {
+tidyup <- function(file, page = NULL, updateProgress = NULL) {
   if(!grepl("\\.pdf$", file, ignore.case = TRUE)) {
     x <- as.list(match.call())
     file_supplied <- str_extract(basename(x$file), "\\.(.+)$", group = 1)
@@ -56,7 +71,13 @@ tidyup <- function(file, page = NULL) {
   }
   
   n <- page %||% get_table_pages(file = file)
-  map(n, ~tidy_page(file = file, page = .x)) %>% 
+  imap(n, \(x, y) {
+    if(is.function(updateProgress)) {
+      text <- sprintf("%g%%", round(y / length(n), 2) * 100)
+      updateProgress(value = y / length(n), detail = text)
+    }
+    tidy_page(file = file, page = x)
+  }) %>% 
     list_rbind() %>% 
     filter(nchar(id) != 0) %>% 
     mutate(
