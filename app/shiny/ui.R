@@ -1,5 +1,11 @@
 ui <-   fluidPage(
-  tags$style(".fa-heart {color:#FF6347;} .fa-weixin {color:#7BB32E} header span {font-size:15px}"),
+  tags$style(
+    "
+    .fa-heart {color:#FF6347;} 
+    .fa-weixin {color:#7BB32E;} 
+    header span {font-size:15px;}
+    "
+),
   titlePanel(title = "TidyLabel"), 
   tags$header(
     span("Created With ", icon(name = "heart", class = "fa-solid fa-heart"), " by "),
@@ -29,7 +35,18 @@ ui <-   fluidPage(
         h1("税费整理"),
         img(src = "/4.png", width = 1200),
         img(src = "/5.png", width = 1200)
-      )
+      ),
+    ),
+    # changelog tab
+    tabPanel(
+      title = "版本更新",
+      includeMarkdown("www/changelog.md")
+    ), 
+    tabPanel(
+      selectInput("switchLang", 
+                  label = NULL, 
+                  choices = c("中文" = "zh", "English" = "en"), 
+                  selected = "zh")
     )
   ) 
 )
