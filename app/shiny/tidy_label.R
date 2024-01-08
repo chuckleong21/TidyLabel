@@ -10,8 +10,6 @@ tidyLabelUI <- function(id) {
                   multiple = FALSE, accept = c(".xls", ".xlsx")),
         uiOutput(ns("selectSheet")),
         uiOutput(ns("uploadSheet")),
-        htmlOutput(ns("tidyUI")),
-        uiOutput(ns("tidyButton")),
         htmlOutput(ns("exportUI")),
         uiOutput(ns("exportButtonUI")),
       ), 
@@ -41,8 +39,14 @@ tidyLabelServer <- function(id) {
     
     output$uploadSheet <- renderUI({
       req(input$file$datapath)
-      actionButton(inputId = ns("uploadButton"), label = "上传表格",
-                   icon = icon(name = "file-arrow-up", class = "fa-file-arrow-up"))
+      tagList(
+        div(
+          style = "display: flex;", 
+          actionButton(inputId = ns("uploadButton"), label = "上传表格",
+                       icon = icon(name = "file-arrow-up", class = "fa-file-arrow-up")),
+          uiOutput(ns("tidyButton"), style = "margin-left:10px;")
+        )
+      )
     })
     
     observeEvent(input$uploadButton, {
@@ -53,10 +57,6 @@ tidyLabelServer <- function(id) {
     })
     
     observeEvent(input$uploadButton, {
-      output$tidyUI <- renderUI(
-        tagList(hr(), h3("整理"))
-      )
-      
       output$tidyButton <- renderUI({
         actionButton(inputId = ns("tidyNow"), label = "整理", 
                      icon = icon(name = "gears", class = "fa-gears"))
@@ -64,7 +64,7 @@ tidyLabelServer <- function(id) {
     })
     
     tidytbl <- reactive({
-      input$tidyNow
+      # input$tidyNow
       x <- file_upload()[[input$sheet]]
       purrr::map(seq(0, ncol(x) - 2, 2), \(i) x[, 1:2 + i])
     })
@@ -100,9 +100,13 @@ tidyLabelServer <- function(id) {
             ), 
             fluidRow(
               conditionalPanel(
-                condition = "input.exportFileType == '.docx'", ns = ns,
+                condition = "input.exportFileType == '.docx'", ns = ns, style = "margin-left:15px;",
                 checkboxInput(inputId = ns("formatBox"), label = "套用百世格式", value = TRUE)
               ),
+              conditionalPanel(
+                condition = "input.formatBox == TRUE", ns = ns, 
+                checkboxInput(inputId = ns("previewDoc"), label = "预览")
+              )
             )
           )
         )
@@ -113,11 +117,6 @@ tidyLabelServer <- function(id) {
       output$exportButtonUI <- renderUI({
         downloadButton(ns("export"), "导出")
       })
-    })
-    
-    output$formatBox <- renderUI({
-      input$exportUI
-      checkboxInput(inputId = "formatBoxValue", label = "套用百世格式", value = TRUE)
     })
     
     export_document <- reactive({
@@ -134,7 +133,9 @@ tidyLabelServer <- function(id) {
       if(input$exportFileType == ".docx") {
         # select every two columns before converting into themed flextables and conserve
         tidy_flextbl <- imap(tidytbl(), \(x, y) {
+          # col <- colnames(x)
           x %>% 
+            # tibble::add_row(tibble::tibble("{col[1]}" := "", "{col[2]}" := "")) %>% 
             flextable(cwidth = 3) %>% 
             set_table_properties(layout = "autofit") %>%
             set_header_labels(values = c(y, "")) %>% 
@@ -146,7 +147,11 @@ tidyLabelServer <- function(id) {
         # 1. add a table into a page, 
         # 2. add a page break after
         # 3. if it is the last page, skip adding a page break
+        progress <- shiny::Progress$new()
+        progress$set(message = "汇编至Word：", value = 0)
         iwalk(rev(tidy_flextbl), \(x, y) {
+          progress$set(value = y / length(tidytbl()), detail = sprintf("%g%%", round(y / length(tidytbl()), 2) * 100))
+          
           if(y != 1) {
             doc %>% 
               body_add_flextable(x) %>% 
@@ -156,14 +161,40 @@ tidyLabelServer <- function(id) {
               body_add_flextable(x)
           }
         })
+        
         if(!input$formatBox) {
           return(doc)
+          progress$close()
         } else {
           # if baaksai format is checked
-          print(doc, target = paste0(tempdir(), "\\tmp.docx")) %>% invisible()
-          format_baaksai()
+          print(doc, target = paste0(tempdir(), "\\tmp.docx"))
+          progress$close()
+          
+          format_baaksai(word_file = paste0(tempdir(), "\\tmp.docx"), 
+                         excel_file = input$file$datapath, 
+                         excel_sheet = input$sheet, 
+                         progress_bar = TRUE, 
+                         preview = input$previewDoc)
+          
         }
       }
+    })
+    
+    preview_doc <- reactive({
+      if(input$formatBox && input$previewDoc) {
+        if(!file.exists("www/tmp.pdf")) {
+          export_document(); Sys.sleep(1.5)
+        }
+        tags$iframe(
+          style = "height:600px; width:100%;", 
+          src = "tmp.pdf"
+        )
+      } else return()
+    })
+    
+    observe({
+      req(input$previewDoc)
+      output$table <- renderUI(preview_doc())
     })
     
     export_file_name <- reactive({
@@ -191,5 +222,10 @@ tidyLabelServer <- function(id) {
         if(input$exportFileType == ".xlsx") openxlsx::saveWorkbook(wb = export_document(), file = file)
       }
     )
+    
+    session$onSessionEnded(function() {
+      label <- paste("www", "tmp.pdf", sep = .Platform$file.sep)
+      if(file.exists(label)) file.remove(label)
+    })
   })
 }
