@@ -25,6 +25,18 @@ dplyr
 tidyr
 magrittr
 stringr
+readr
+rlang
+
+# MS App
+png
 
 # tooltip
 tippy
+
+# Other Dependencies
+markdown
+rstudioapi
+
+# translation
+shiny.i18n

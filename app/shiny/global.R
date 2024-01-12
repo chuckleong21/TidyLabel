@@ -11,10 +11,13 @@ library(tippy)
 library(RDCOMClient)
 library(tabulizer)
 library(rlang)
-# library(SWinTypeLibs)
+library(shiny.i18n)
+
 source("tidy_label.R")
 source("tidy_tax.R")
 source("tagsTextInput.R")
 source("format_baaksai.R")
 source("tidyup2.R")
-# Move DescTool Package into app/library
+
+translator <- Translator$new(translation_json_path = "translations.json")
+translator$set_translation_language("zh")
