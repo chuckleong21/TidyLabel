@@ -1,0 +1,121 @@
+{
+    "languages": ["zh", "en"], 
+    "translation": [
+        {
+            "en": "TidyLabel",
+            "zh": "标签整理"
+        },
+        {
+            "en": "TidyTax",
+            "zh": "税费整理"
+        },
+        {
+            "en": "Help",
+            "zh": "整理帮助"
+        },
+        {
+            "en": "Changelog",
+            "zh": "版本更新"
+        },
+        {
+            "en": "Upload",
+            "zh": "上传"
+        },
+        {
+            "en": "Upload your label Excel workbook",
+            "zh": "上传箱单表格Excel文件"
+        },
+        {
+            "en": "Choose a worksheet",
+            "zh": "选择表格"
+        },
+        {
+            "en": "Upload worksheet",
+            "zh": "上传表格"
+        },
+        {
+            "en": "Tidy now",
+            "zh": "整理"
+        },      
+        {
+            "en": "Extract",
+            "zh": "共整理"
+        },       
+        {
+            "en": "tables",
+            "zh": "个表格"
+        },       
+        {
+            "en": "table",
+            "zh": "表格"
+        },       
+        {
+            "en": "Export Options",
+            "zh": "导出选项"
+        },        
+        {
+            "en": "Rename File",
+            "zh": "文件名"
+        },
+        {
+            "en": "Export As",
+            "zh": "导出为"
+        },
+        {
+            "en": "Apply Format",
+            "zh": "套用百世格式"
+        },
+        {
+            "en": "Preview",
+            "zh": "预览"
+        },
+        {
+            "en": "Export",
+            "zh": "导出"
+        },
+        {
+            "en": "Upload your tax PDF",
+            "zh": "上传税费PDF文件"
+        },
+        {
+            "en": "Get",
+            "zh": " 文件有"
+        },
+        {
+            "en": "Getting Tables",
+            "zh": "识别表格"
+        },
+        {
+            "en": "Wrangling Data",
+            "zh": "整理数据"
+        },
+        {
+            "en": "Summary",
+            "zh": "汇总"
+        },
+        {
+            "en": "Ignore the following tax code(s)",
+            "zh": "忽略以下税费编码"
+        },
+        {
+            "en": "Rename header",
+            "zh": "重命名表头"
+        },
+        {
+            "en": "Writing to Word",
+            "zh": "汇编至Word"
+        },        
+        {
+            "en": "Applying Formats",
+            "zh": "套用格式"
+        },        
+        {
+            "en": "Moving Labels",
+            "zh": "迁移标签"
+        },        
+        {
+            "en": "About This App",
+            "zh": "关于"
+        }
+    ]
+}

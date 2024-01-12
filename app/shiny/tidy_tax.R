@@ -1,12 +1,12 @@
-tidyTaxUI <- function(id) {
+tidyTaxUI <- function(id, i18n) {
   ns <- NS(id)
   
   tagList(
     fluidRow(
       column(
         width = 4, 
-        h3("上传"),
-        fileInput(inputId = ns("file"), label = "上传税费表格Excel文件", 
+        h3(i18n$translate("上传")),
+        fileInput(inputId = ns("file"), label = i18n$translate("上传税费PDF文件"), 
                   multiple = FALSE, accept = ".pdf"),
         htmlOutput(ns("tidyUI")),
         htmlOutput(ns("filterCheckboxUI")),
@@ -20,36 +20,13 @@ tidyTaxUI <- function(id) {
   )
 }
 
-tidyTaxServer <- function(id) {
+tidyTaxServer <- function(id, i18n) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-    file_upload <- reactive({
-      req(input$file$datapath)
-      if(!grepl("\\.(pdf)$", input$file$datapath)) {
-        sheets <- readxl::excel_sheets(input$file$datapath)
-        map(str_which(sheets, "Page"), \(i) read_excel(input$file$datapath, sheet = i))
-      } else {
-        input$file$name
-      }
-    })
     
     observe({
         req(input$file)
-        if(grepl("\\.(xls|xlsx)$", input$file$datapath)) {
-          output$table <- renderUI({
-            # req(input$file)
-            tagList(
-              h3("文件有", strong(length(file_upload())), "个表格"),
-              hr(),
-              lapply(seq_along(file_upload()), function(x) {
-                output[[paste0("table_", x)]] <- renderUI({
-                  tagList(h6("表格", x, ":"), br(), renderTable(file_upload()[[x]]))
-                })
-              })
-            )
-          })
-        } 
         
         if(grepl("\\.(pdf)$", input$file$datapath)) {
           output$table <- renderUI({
@@ -67,39 +44,25 @@ tidyTaxServer <- function(id) {
     n <- reactive({
       # implement Progress
       progress <- shiny::Progress$new()
-      progress$set(message = "识别表格：", value = 0)
+      progress$set(message = paste0(i18n$translate("识别表格"), "："), value = 0)
       on.exit(progress$close())
-      updateProgress <- function(
-    value = NULL, 
-    detail = NULL
-    # reset = NULL
-      ) {
+      updateProgress <- function(value = NULL, detail = NULL) {
         if(is.null(value)) {
           value <- progress$getValue()
           value <- value + (progress$getMax() - value) / 4
         }
-        # if(reset) {
-        #   value <- progress$getValue() + 0.5
-        #   progress$set(value = value, detail = detail)
-        # }
         progress$set(value = value, detail = detail)
       }
       get_table_pages(
         file = paste("www/", isolate(input$file$name), sep = .Platform$file.sep), 
-        updateProgress = updateProgress 
-        # resetProgress = TRUE
-      )
+        updateProgress = updateProgress)
     })
     tidied <- reactive({
       req(input$file)
       progress <- shiny::Progress$new()
-      progress$set(message = "整理数据：", value = 0)
+      progress$set(message = paste0(i18n$translate("整理数据"), "："), value = 0)
       on.exit(progress$close())
-      updateProgress <- function(
-    value = NULL, 
-    detail = NULL
-    # reset = NULL
-      ) {
+      updateProgress <- function(value = NULL, detail = NULL) {
         if(is.null(value)) {
           value <- progress$getValue()
           value <- value + (progress$getMax() - value) / 4
@@ -120,9 +83,9 @@ tidyTaxServer <- function(id) {
     output$tidyUI <- renderUI({
       req(input$file)
       tagList(
-        h3("整理"), 
+        h3(i18n$translate("整理")), 
         hr(), 
-        actionButton(inputId = ns("tidyButton"), label = "整理", 
+        actionButton(inputId = ns("tidyButton"), label = i18n$translate("整理"), 
                      icon = icon(name = "gears", class = "fa-solid")),
       )
     })
@@ -132,8 +95,8 @@ tidyTaxServer <- function(id) {
         req(input$tidyButton)
         conditionalPanel(
           condition = "input.tidyButton != 0", ns = ns, 
-          checkboxInput(inputId = ns("summ"), label = "汇总"), 
-          checkboxGroupInput(inputId = ns("taxCode"), label = "忽略以下税费编码：", 
+          checkboxInput(inputId = ns("summ"), label = i18n$translate("汇总")), 
+          checkboxGroupInput(inputId = ns("taxCode"), label = paste0(i18n$translate("忽略以下税费编码"), "："), 
                              choices = unique(tidied()[["Вид"]]), inline = TRUE), 
         )
       })
@@ -177,16 +140,18 @@ tidyTaxServer <- function(id) {
           h3("导出"), 
           hr(),
           div(
-            tagsTextInput(inputId = ns("header"), label = "重命名表头"),
+            tagsTextInput(inputId = ns("header"), label = i18n$translate("重命名表头")),
             fluidRow(
               column(
                 width = 4, 
-                textInput(inputId = ns("filename"), label = "文件名", placeholder = "导出"), 
+                textInput(inputId = ns("filename"), 
+                          label = i18n$translate("文件名"), 
+                          placeholder = i18n$translate("导出")), 
               ), 
               column(
                 width = 6, 
                 br(),
-                downloadButton(outputId = ns("export"), label = "导出")
+                downloadButton(outputId = ns("export"), label = i18n$translate("导出"))
               )
             )
           )
@@ -207,7 +172,7 @@ tidyTaxServer <- function(id) {
       if(nchar(input$filename) != 0) {
         gsub(paste0(id, "-"), "", input$filename)
       } else {
-        "导出"
+        i18n$translate("导出")
       }
     })
     

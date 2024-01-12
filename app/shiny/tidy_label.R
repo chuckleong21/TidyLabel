@@ -1,12 +1,14 @@
-tidyLabelUI <- function(id) {
+tidyLabelUI <- function(id, i18n) {
   ns <- NS(id)
+  
+  # usei18n(i18n)
   
   tagList(
     fluidRow(
       column(
         width = 4, 
-        h3("上传"),
-        fileInput(inputId = ns("file"), label = "上传箱单表格Excel文件", 
+        h3(i18n$translate("上传")),
+        fileInput(inputId = ns("file"), label = i18n$translate("上传箱单表格Excel文件"), 
                   multiple = FALSE, accept = c(".xls", ".xlsx")),
         uiOutput(ns("selectSheet")),
         uiOutput(ns("uploadSheet")),
@@ -21,7 +23,7 @@ tidyLabelUI <- function(id) {
   )
 }
 
-tidyLabelServer <- function(id) {
+tidyLabelServer <- function(id, i18n) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
@@ -34,7 +36,7 @@ tidyLabelServer <- function(id) {
     
     output$selectSheet <- renderUI({
       req(input$file$datapath)
-      selectInput(inputId = ns("sheet"), label = "选择表格", choices = names(file_upload()))
+      selectInput(inputId = ns("sheet"), label = i18n$translate("选择表格"), choices = names(file_upload()))
     })
     
     output$uploadSheet <- renderUI({
@@ -42,7 +44,7 @@ tidyLabelServer <- function(id) {
       tagList(
         div(
           style = "display: flex;", 
-          actionButton(inputId = ns("uploadButton"), label = "上传表格",
+          actionButton(inputId = ns("uploadButton"), label = i18n$translate("上传表格"),
                        icon = icon(name = "file-arrow-up", class = "fa-file-arrow-up")),
           uiOutput(ns("tidyButton"), style = "margin-left:10px;")
         )
@@ -58,7 +60,7 @@ tidyLabelServer <- function(id) {
     
     observeEvent(input$uploadButton, {
       output$tidyButton <- renderUI({
-        actionButton(inputId = ns("tidyNow"), label = "整理", 
+        actionButton(inputId = ns("tidyNow"), label = i18n$translate("整理"), 
                      icon = icon(name = "gears", class = "fa-gears"))
       })
     })
@@ -69,43 +71,54 @@ tidyLabelServer <- function(id) {
       purrr::map(seq(0, ncol(x) - 2, 2), \(i) x[, 1:2 + i])
     })
     
+    output_table_list <- reactive({
+      tagList(
+        h3(i18n$translate("共整理"), strong(length(tidytbl())), i18n$translate("个表格")),
+        hr(),
+        lapply(seq_along(tidytbl()), function(x) {
+          output[[paste0("table_", x)]] <- renderUI({
+            tagList(
+              h6(i18n$translate("表格"), x, ":"), 
+              br(), renderTable(tidytbl()[x])
+            )
+          })
+        })
+      )}
+    )
+    
     observeEvent(input$tidyNow, {
       output$table <- renderUI({
-        tagList(
-          h3("共整理", strong(length(tidytbl())), "个表格"),
-          hr(),
-          lapply(seq_along(tidytbl()), function(x) {
-            output[[paste0("table_", x)]] <- renderUI({
-              tagList(h6("表格", x, ":"), br(), renderTable(tidytbl()[x]))
-            })
-          })
-        )
+        output_table_list()
       })
       
       output$exportUI <- renderUI({
+        previewDoc_cond <- "input.formatBox != null & input.exportFileType == '.docx' & input.formatBox == true"
         tagList(
           hr(), 
-          h3("导出"), 
+          h3(i18n$translate("导出选项")), 
           div(
             fluidRow(
               column(
                 width = 4, 
-                textInput(inputId = ns("filename"), label = "文件名", placeholder = "导出")
+                textInput(inputId = ns("filename"), label = i18n$translate("文件名"), placeholder = i18n$translate("导出"))
               ),
               column(
                 width = 6, 
-                radioButtons(inputId = ns("exportFileType"), label = "导出为:", 
+                radioButtons(inputId = ns("exportFileType"), label = paste0(i18n$translate("导出为"), ":"), 
                              choices = c(".docx", ".xlsx"), selected = ".docx", inline = TRUE)
               ), 
             ), 
             fluidRow(
-              conditionalPanel(
-                condition = "input.exportFileType == '.docx'", ns = ns, style = "margin-left:15px;",
-                checkboxInput(inputId = ns("formatBox"), label = "套用百世格式", value = TRUE)
-              ),
-              conditionalPanel(
-                condition = "input.formatBox == TRUE", ns = ns, 
-                checkboxInput(inputId = ns("previewDoc"), label = "预览")
+              div(
+                conditionalPanel(
+                  condition = "input.exportFileType == '.docx'", ns = ns, style = "width:110px;",
+                  checkboxInput(inputId = ns("formatBox"), label = i18n$translate("套用百世格式"), value = TRUE)
+                ),
+                conditionalPanel(
+                  condition = previewDoc_cond, ns = ns, style = "margin-left:10px;",
+                  checkboxInput(inputId = ns("previewDoc"), label = i18n$translate("预览")), 
+                ),
+                style = "margin-left:15px;display:flex;"
               )
             )
           )
@@ -115,7 +128,7 @@ tidyLabelServer <- function(id) {
     
     observeEvent(input$tidyNow, {
       output$exportButtonUI <- renderUI({
-        downloadButton(ns("export"), "导出")
+        downloadButton(ns("export"), i18n$translate("导出"))
       })
     })
     
@@ -148,7 +161,7 @@ tidyLabelServer <- function(id) {
         # 2. add a page break after
         # 3. if it is the last page, skip adding a page break
         progress <- shiny::Progress$new()
-        progress$set(message = "汇编至Word：", value = 0)
+        progress$set(message = paste0(i18n$translate("汇编至Word"), "："), value = 0)
         iwalk(rev(tidy_flextbl), \(x, y) {
           progress$set(value = y / length(tidytbl()), detail = sprintf("%g%%", round(y / length(tidytbl()), 2) * 100))
           
@@ -174,7 +187,8 @@ tidyLabelServer <- function(id) {
                          excel_file = input$file$datapath, 
                          excel_sheet = input$sheet, 
                          progress_bar = TRUE, 
-                         preview = input$previewDoc)
+                         preview = input$previewDoc, 
+                         i18n = translator)
           
         }
       }
@@ -189,7 +203,7 @@ tidyLabelServer <- function(id) {
           style = "height:600px; width:100%;", 
           src = "tmp.pdf"
         )
-      } else return()
+      } else output_table_list()
     })
     
     observe({
@@ -201,7 +215,7 @@ tidyLabelServer <- function(id) {
       if(nchar(input$filename) != 0) {
         gsub(paste0(id, "-"), "", input$filename)
       } else {
-        "导出"
+        i18n$translate("导出")
       }
     })
     

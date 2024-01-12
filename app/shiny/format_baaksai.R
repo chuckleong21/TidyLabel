@@ -4,7 +4,8 @@ format_baaksai <- function(word_file = paste0(tempdir(), "\\tmp.docx"),
                            label_position = "end",
                            visible = FALSE, 
                            progress_bar = NULL, 
-                           preview = NULL) {
+                           preview = NULL, 
+                           i18n) {
   # MS Word
   word <- COMCreate("Word.Application") # create MS Word App
   word[["Visible"]] <- visible # Make it invisible in taskbar
@@ -33,7 +34,7 @@ format_baaksai <- function(word_file = paste0(tempdir(), "\\tmp.docx"),
   tbl_count <- doc$Tables()$Count() # a numeric
   if(progress_bar) {
     progress <- shiny::Progress$new()
-    progress$set(message = "套用格式：", value = 0)
+    progress$set(message = paste0(i18n$translate("套用格式"), "："), value = 0)
   }
   
   for(i in seq_len(tbl_count)) {
@@ -60,10 +61,9 @@ format_baaksai <- function(word_file = paste0(tempdir(), "\\tmp.docx"),
   
   
   count <- worksheet$Shapes()$Count()
-  wdConst <- DescTools::wdConst
   if(progress_bar) {
     progress <- shiny::Progress$new()
-    progress$set(message = "迁移标签：", value = 0)
+    progress$set(message = paste0(i18n$translate("迁移标签"), "："), value = 0)
   }
   
   for(i in seq_len(count)) {
@@ -75,14 +75,14 @@ format_baaksai <- function(word_file = paste0(tempdir(), "\\tmp.docx"),
     page <- ceiling(worksheet$Range(addr)$Column() / 2)
     
     word$Selection()$GoTo(
-      What = wdConst$wdGoToPage,
-      Which = wdConst$wdGoToAbsolute,
+      What = 1, # wdGoToPage
+      Which = 1, # wdGoToAbsolute,
       Count = page
     )
     
     if(label_position == "end") {
       word$Selection()$Tables(1)$Select()
-      word$Selection()$Collapse(wdConst$wdCollapseEnd)
+      word$Selection()$Collapse(0) # wdCollapseEnd
     }
     
     shape$Copy()
