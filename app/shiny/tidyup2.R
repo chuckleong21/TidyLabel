@@ -1,21 +1,11 @@
-get_table_pages <- function(
-    file, 
-    updateProgress = NULL 
-    # resetProgress
-    ) {
+get_table_pages <- function(file, updateProgress = NULL) {
   p <- c()
   for(i in seq_len(get_n_pages(file))) {
     if(length(extract_tables(file, i)) != 0) {
       # update Progress
       if(is.function(updateProgress)) {
         text <- sprintf("%d/%d", i, i)
-        # if(resetProgress) {
-        #   updateProgress(value = 0, detail = text, reset = resetProgress)
-        # }
-        updateProgress(
-          value = i, detail = text 
-          # reset = resetProgress
-        )
+        updateProgress(value = i, detail = text)
       }
       p <- c(p, i)
     } else next
