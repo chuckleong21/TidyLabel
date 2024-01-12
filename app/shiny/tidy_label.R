@@ -1,8 +1,6 @@
 tidyLabelUI <- function(id, i18n) {
   ns <- NS(id)
   
-  # usei18n(i18n)
-  
   tagList(
     fluidRow(
       column(
@@ -146,9 +144,7 @@ tidyLabelServer <- function(id, i18n) {
       if(input$exportFileType == ".docx") {
         # select every two columns before converting into themed flextables and conserve
         tidy_flextbl <- imap(tidytbl(), \(x, y) {
-          # col <- colnames(x)
           x %>% 
-            # tibble::add_row(tibble::tibble("{col[1]}" := "", "{col[2]}" := "")) %>% 
             flextable(cwidth = 3) %>% 
             set_table_properties(layout = "autofit") %>%
             set_header_labels(values = c(y, "")) %>% 
