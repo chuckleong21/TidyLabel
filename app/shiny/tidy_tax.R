@@ -41,7 +41,7 @@ tidyTaxServer <- function(id, i18n) {
         }
     })
     
-    n <- reactive({
+    n <- eventReactive(input$tidyButton, {
       # implement Progress
       progress <- shiny::Progress$new()
       progress$set(message = paste0(i18n$translate("识别表格"), "："), value = 0)
@@ -57,8 +57,8 @@ tidyTaxServer <- function(id, i18n) {
         file = paste("www/", isolate(input$file$name), sep = .Platform$file.sep), 
         updateProgress = updateProgress)
     })
-    tidied <- reactive({
-      req(input$file)
+    tidied <- eventReactive(input$tidyButton, {
+      # req(input$file)
       progress <- shiny::Progress$new()
       progress$set(message = paste0(i18n$translate("整理数据"), "："), value = 0)
       on.exit(progress$close())

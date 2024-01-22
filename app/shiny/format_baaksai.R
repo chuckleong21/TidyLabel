@@ -89,9 +89,11 @@ format_baaksai <- function(word_file = paste0(tempdir(), "\\tmp.docx"),
     shape$Select()
     word$Selection()$Paste()
   }
-  on.exit({if(exists("progress", inherits = FALSE)) progress$close()})
+  on.exit({
+    if(exists("progress", inherits = FALSE)) progress$close()
+    doc$Save(); doc$Close(); word$Quit(); workbook$Close(); excel$Quit()
+  })
   
   if(preview) doc$SaveAs(FileName = normalizePath("www/tmp.pdf"), FileFormat = 17)
   
-  doc$Save(); doc$Close(); word$Quit(); workbook$Close(); excel$Quit()
 }

@@ -11,6 +11,10 @@ output: html_document
 
 Only works on Windows since >=0.7.0 for dependencies of MS Applications and Java
 
+### 1.0.1
+
+-   [x] Minor fixes
+
 ### 1.0.0
 
 -   [x] Add English translation

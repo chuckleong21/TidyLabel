@@ -63,7 +63,7 @@ tidyLabelServer <- function(id, i18n) {
       })
     })
     
-    tidytbl <- reactive({
+    tidytbl <- eventReactive(input$tidyNow, {
       # input$tidyNow
       x <- file_upload()[[input$sheet]]
       purrr::map(seq(0, ncol(x) - 2, 2), \(i) x[, 1:2 + i])
@@ -195,6 +195,8 @@ tidyLabelServer <- function(id, i18n) {
         if(!file.exists("www/tmp.pdf")) {
           export_document(); Sys.sleep(1.5)
         }
+        
+        while(!file.exists("www/tmp.pdf")) Sys.sleep(0.5)
         tags$iframe(
           style = "height:600px; width:100%;", 
           src = "tmp.pdf"
