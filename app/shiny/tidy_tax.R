@@ -20,45 +20,29 @@ tidyTaxUI <- function(id, i18n) {
   )
 }
 
-tidyTaxServer <- function(id, i18n) {
+tidyTaxServer <- function(id, i18n, version) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-    
     observe({
-        req(input$file)
-        
-        if(grepl("\\.(pdf)$", input$file$datapath)) {
-          output$table <- renderUI({
-            if(!input$file$name %in% list.files("www/")) {
-              file.copy(input$file$datapath, paste("www", input$file$name, sep = .Platform$file.sep))
-            }
-            tags$iframe(
-              style = "height:600px; width:100%;", 
-              src = input$file$name
-            )
-          })
-        }
+      req(input$file)
+      
+      if(grepl("\\.(pdf)$", input$file$datapath)) {
+        output$table <- renderUI({
+          if(!input$file$name %in% list.files("www/")) {
+            file.copy(input$file$datapath, paste("www", input$file$name, sep = .Platform$file.sep))
+          }
+          tags$iframe(
+            style = "height:600px; width:100%;", 
+            src = input$file$name
+          )
+        })
+      }
     })
     
-    n <- eventReactive(input$tidyButton, {
-      # implement Progress
-      progress <- shiny::Progress$new()
-      progress$set(message = paste0(i18n$translate("识别表格"), "："), value = 0)
-      on.exit(progress$close())
-      updateProgress <- function(value = NULL, detail = NULL) {
-        if(is.null(value)) {
-          value <- progress$getValue()
-          value <- value + (progress$getMax() - value) / 4
-        }
-        progress$set(value = value, detail = detail)
-      }
-      get_table_pages(
-        file = paste("www/", isolate(input$file$name), sep = .Platform$file.sep), 
-        updateProgress = updateProgress)
-    })
+    n <- reactive(get_n_pages(input$file$datapath))
     tidied <- eventReactive(input$tidyButton, {
-      # req(input$file)
+      req(version())
       progress <- shiny::Progress$new()
       progress$set(message = paste0(i18n$translate("整理数据"), "："), value = 0)
       on.exit(progress$close())
@@ -70,7 +54,8 @@ tidyTaxServer <- function(id, i18n) {
         progress$set(value = value, detail = detail)
       }
       
-      tidyup(file = input$file$datapath, page = n(), updateProgress = updateProgress) %>%
+      tidyup(file = input$file$datapath, page = seq(input$pagination[1], input$pagination[2], 1),
+             version = version(), updateProgress = updateProgress) %>%
         rename(
           "Товар" = id,
           "Код товара" = hs_code,   
@@ -83,8 +68,10 @@ tidyTaxServer <- function(id, i18n) {
     output$tidyUI <- renderUI({
       req(input$file)
       tagList(
-        h3(i18n$translate("整理")), 
+        h3(i18n$translate("整理参数")), 
         hr(), 
+        sliderInput(inputId = ns("pagination"), label = i18n$translate("页面范围"), 
+                    min = 1, max = n(), value = c(1, n()), step = 1),
         actionButton(inputId = ns("tidyButton"), label = i18n$translate("整理"), 
                      icon = icon(name = "gears", class = "fa-solid")),
       )
@@ -137,7 +124,7 @@ tidyTaxServer <- function(id, i18n) {
     observeEvent(input$tidyButton, {
       output$exportUI <- renderUI({
         tagList(
-          h3("导出"), 
+          h3(i18n$translate("导出")), 
           hr(),
           div(
             tagsTextInput(inputId = ns("header"), label = i18n$translate("重命名表头")),

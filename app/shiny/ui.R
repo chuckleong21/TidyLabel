@@ -32,6 +32,10 @@ ui <-   fluidPage(
   justify-content:right;
   align-items: center;
 }
+
+.opt-container {
+  display:flex;
+}
     "
   ),
   titlePanel(title = "TidyLabel"), 
@@ -46,13 +50,13 @@ ui <-   fluidPage(
       ),
       tippy(element = div(class = "contact-detail", icon(name = "weixin", class = "fa-weixin"), "@chuckleong21"), 
             content = "<img src='/qrcode.jpg' width='190' height=259>"), 
-      div(
-        class = "switch-lang",
-        selectInput("switchLang", 
-                    label = NULL, 
-                    choices = setNames(translator$get_languages(), c("中文", "English")), 
-                    selected = translator$get_key_translation()) 
-      )
+      # div(
+      #   class = "switch-lang",
+      #   selectInput("switchLang", 
+      #               label = NULL, 
+      #               choices = setNames(translator$get_languages(), c("中文", "English")), 
+      #               selected = translator$get_key_translation()) 
+      # )
     ) 
   ), 
   navlistPanel(
@@ -65,6 +69,38 @@ ui <-   fluidPage(
     tabPanel(
       title = translator$translate("版本更新"),
       htmlOutput("changelog")
-    ), 
+    ),
+    tabPanel(
+      title = translator$translate("应用设置"),
+      tagList(
+        fluidRow(
+          column(width = 1), 
+          column(
+            width = 8,
+            div(
+              class = "opt-container", 
+              span(translator$translate("应用语言")),
+              div(
+                class = "switch-lang",
+                selectInput("switchLang", 
+                            label = NULL, 
+                            choices = setNames(translator$get_languages(), c("中文", "English")), 
+                            selected = translator$get_key_translation()) 
+              )
+            ),
+            div(
+              class = "opt-container", 
+              span(translator$translate("税费版本")),
+              div(
+                selectInput("pdfVersion", 
+                            label = NULL, 
+                            choices = setNames(1:2, c("2023-12", "2024-05")), 
+                            selected = 2)
+              )
+            )
+          )
+        )
+      )
+    )
   ) 
 )

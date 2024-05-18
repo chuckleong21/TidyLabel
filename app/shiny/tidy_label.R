@@ -185,7 +185,6 @@ tidyLabelServer <- function(id, i18n) {
                          progress_bar = TRUE, 
                          preview = input$previewDoc, 
                          i18n = translator)
-          
         }
       }
     })

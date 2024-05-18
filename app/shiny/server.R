@@ -12,7 +12,7 @@ server = function(input, output, session) {
   })
   
   tidyLabelServer("tab1", i18n = translator)
-  tidyTaxServer("tab2", i18n = translator)
+  tidyTaxServer("tab2", i18n = translator, version = reactive(input$pdfVersion))
   
   observe({
     output$changelog <- renderUI({

@@ -34,6 +34,14 @@
             "zh": "上传表格"
         },
         {
+          "en": "Tidy Settings", 
+          "zh": "整理参数"
+        },
+        {
+          "en": "Pages Selection", 
+          "zh": "页面范围"
+        },
+        {
             "en": "Tidy now",
             "zh": "整理"
         },      
@@ -112,7 +120,19 @@
         {
             "en": "Moving Labels",
             "zh": "迁移标签"
-        },        
+        },
+        {
+          "en": "Settings",
+          "zh": "应用设置"
+        },
+        {
+          "en": "Language",
+          "zh": "应用语言"
+        },
+        {
+          "en": "Tax Version", 
+          "zh": "税费版本"
+        },
         {
             "en": "About This App",
             "zh": "关于"
