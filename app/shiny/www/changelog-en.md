@@ -11,19 +11,39 @@ output: html_document
 
 Only works on Windows since >=0.7.0 for dependencies of MS Applications and Java
 
-### 1.2.0
+### 1.5.0
 
-- <i class="fa-regular fa-circle" style="color:steelblue;"></i> Feature: Check labels across container lists
-- <i class="fa-regular fa-circle" style="color:steelblue;"></i> App Settings：add switch for `Check labels`
+  - <i class="fa-regular fa-circle" style="color:steelblue;"></i> Improve UI
 
-### 1.1.9.9000
+### 1.4.2
 
-- <i class="fa-regular fa-circle" style="color:steelblue;"></i> Add methods for container lists' standardization
-- <i class="fa-regular fa-circle" style="color:steelblue;"></i> Improve `App Settings` UI
+  - <i class="fas fa-question" style="color:red;"></i> Add algorithm selections for calculating dissimilarities (currently [Jaro–Winkler](https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance) distance)
+
+### 1.4.0
+
+- **TidyTax**
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Add 2 new methods for 2 separate PDF versions
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Add page range parameter
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Show PDF recognition statuses: 
+    - `Success` when versions between file and settings match 
+    - `Warning` when versions do not match 
+    - `Error` when versions are not available from settings
+- **Label Validation**
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Add label validation
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Use `{tidystringdist}` to calculate dissimilarities between string in labels and in list
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Add list standardization method
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Use {gt} to show validation results
+- **App Settings**
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Add preset PDF versions: `Auto`, `7805640197`, `2540263576`, `7801664214`, `7816168667`
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Add switch to turn on/off label validation
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Add functionality to upload list files (.xlsx only)
+- Miscellaneous
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Switch to faster API`{openxlsx2}` for I/O xlsx files
+  - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Translate UI
 
 ### 1.1.0 
 
-- <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Add tidy method for tax version `2024-05`，retain previous tidy method
+- <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> ~~Add tidy method for tax version `2024-05`，retain previous tidy method~~
 - <i class="fa-regular fa-circle-check" style="color:forestgreen;"></i> Add `App Settings` tab
   - Move `Language` settings
   - Add tax version selection
