@@ -1,5 +1,15 @@
 ui <-   fluidPage(
+  useShinyjs(),
   usei18n(translator),
+  # tags$head(
+  #   tags$script(
+  #     "
+  #     $(document).on('shiny:value', function(event) {
+  #       console.log('[output] ' + event.name + ': ' + event.value);
+  #     });
+  #   "
+  #   )
+  # ),
   tags$style(
     "
     .fa-heart {color:#FF6347;} 
@@ -36,6 +46,10 @@ ui <-   fluidPage(
 .opt-container {
   display:flex;
 }
+
+.opt-container span {
+  margin-right:7px
+}
     "
   ),
   titlePanel(title = "TidyLabel"), 
@@ -60,10 +74,11 @@ ui <-   fluidPage(
     ) 
   ), 
   navlistPanel(
+    id = "main",
     widths = c(3, 9),
-    # tabPanel1
-    tabPanel(tidyLabelUI("tab1", i18n = translator), title = translator$translate("标签整理")),
-    # tabPanel2
+    # tidy_label
+    tabPanel(value = "#label", tidyLabelUI("tab1", i18n = translator), title = translator$translate("标签整理")),
+    # tidy_tax
     tabPanel(tidyTaxUI("tab2", i18n = translator), title = translator$translate("税费整理")),
     # changelog tab
     tabPanel(
@@ -79,7 +94,7 @@ ui <-   fluidPage(
             width = 8,
             div(
               class = "opt-container", 
-              span(translator$translate("应用语言")),
+              span(style = "padding-top:5px", translator$translate("应用语言")),
               div(
                 class = "switch-lang",
                 selectInput("switchLang", 
@@ -94,8 +109,29 @@ ui <-   fluidPage(
               div(
                 selectInput("pdfVersion", 
                             label = NULL, 
-                            choices = setNames(1:2, c("2023-12", "2024-05")), 
-                            selected = 2)
+                            choices = version_list, 
+                            selected = "auto")
+              )
+            ),
+            div(
+              class = "opt-container",
+              span(translator$translate("开启对照")), 
+              div(
+                shinyWidgets::materialSwitch(
+                  inputId = "enableValidation", 
+                  value = FALSE,
+                  status = "primary"
+                )
+              )
+            ), 
+            conditionalPanel(
+              condition = "input.enableValidation == true", 
+              tagList(
+                div(
+                  class = "opt-container", 
+                  span(style = "padding-top:25px", translator$translate("箱单文件")), 
+                  div(fileInput("boxFile", label = "", accept = ".xlsx"))
+                )
               )
             )
           )
