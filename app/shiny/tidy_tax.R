@@ -6,8 +6,23 @@ tidyTaxUI <- function(id, i18n) {
       column(
         width = 4, 
         h3(i18n$translate("上传")),
-        fileInput(inputId = ns("file"), label = i18n$translate("上传税费PDF文件"), 
-                  multiple = FALSE, accept = ".pdf"),
+        div(
+          style = "display:flex",
+          fileInput(inputId = ns("file"), label = i18n$translate("上传税费PDF文件"), 
+                    multiple = FALSE, accept = ".pdf"),
+          span(
+            style = "margin-top:25px;",
+            actionButton(ns("pdfSuccess"), label = "", 
+                         icon = icon("circle-check", 
+                                     class = "fa-solid", style = "color:#198754"), style = "border:none"), 
+            actionButton(ns("pdfWarning"), label = "", 
+                         icon = icon("circle-exclamation", 
+                                     class = "fa-solid", style = "color:#ffc107"), style = "border:none"),
+            actionButton(ns("pdfError"), label = "", 
+                         icon = icon("circle-xmark", 
+                                     class = "fa-solid", style = "color:#dc3545"), style = "border:none")
+          )
+        ),
         htmlOutput(ns("tidyUI")),
         htmlOutput(ns("filterCheckboxUI")),
         htmlOutput(ns("exportUI")),
@@ -23,6 +38,62 @@ tidyTaxUI <- function(id, i18n) {
 tidyTaxServer <- function(id, i18n, version) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+      
+    pdf_status <- reactive({
+      
+      if(is.null(input$file)) return(NULL)
+      from <- get_pdf_version(input$file$datapath)$version
+      
+      if(version() == "auto") {
+        ifelse(from %in% version_list, "success", "error")
+      } else {
+        ifelse(from %in% version_list, ifelse(from == version(), "success", "warning"), "error")
+      }
+    })
+    
+    pdf_status_modal <- function() {
+      version <- reactive(get_pdf_version(input$file$datapath)$version)
+      preset <- session$userData$tax$version() 
+      status <- pdf_status()
+      modalDialog(
+        title = ifelse(preset == "auto", "自动检测结果", "版本检测结果"),
+        footer = tagList(
+          modalButton("OK")
+        ), 
+        tagList(
+            switch(status, 
+                   "success" = span("匹配", style = "color:#198754"),
+                   "warning" = span("不匹配", style = "color:#ffc107"), 
+                   "error" = span("缺失", style = "color:dc3545")),
+            br(),
+            span(paste0("检测到版本", ":" , version())),
+            if(preset != "auto") div(br(), span(paste0("设置版本", ":", preset))),
+            if(status == "error" && preset == "auto") div(br(), span(paste0("现有版本", ":", version_list[-1]))),
+            if(status != "success") div(br(), span(paste0("版本不匹配", "/", "版本缺失", "将导致结果出错")))
+        )
+      )
+    }
+    
+    observe({
+      if(is.null(pdf_status())) {
+        hide(id = "pdfSuccess")
+        hide(id = "pdfWarning")
+        hide(id = "pdfError")
+      } else {
+        toggle(id = "pdfSuccess", condition = pdf_status() == "success")
+        toggle(id = "pdfWarning", condition = pdf_status() == "warning")
+        toggle(id = "pdfError", condition = pdf_status() == "error")
+      }
+    })
+    
+    observeEvent(input$pdfSuccess, {
+      showModal(
+        pdf_status_modal()
+      )
+    })
+    
+    observeEvent(input$pdfWarning, showModal(pdf_status_modal()))
+    observeEvent(input$pdfError, showModal(pdf_status_modal()))
     
     observe({
       req(input$file)
@@ -54,8 +125,9 @@ tidyTaxServer <- function(id, i18n, version) {
         progress$set(value = value, detail = detail)
       }
       
-      tidyup(file = input$file$datapath, page = seq(input$pagination[1], input$pagination[2], 1),
-             version = version(), updateProgress = updateProgress) %>%
+      tidyup(file = input$file$datapath, page = do.call(seq, as.list(input$pagination)),
+             version = ifelse(version() == "auto", get_pdf_version(input$file$datapath)$version, version()), 
+             updateProgress = updateProgress) %>%
         rename(
           "Товар" = id,
           "Код товара" = hs_code,   
@@ -166,7 +238,7 @@ tidyTaxServer <- function(id, i18n, version) {
     output$export <- downloadHandler(
       filename = function() paste0(export_file_name(), ".xlsx"), 
       content = function(file) {
-        openxlsx::write.xlsx(x = tidied_rename(), file = file)
+        openxlsx2::write_xlsx(x = tidied_rename(), file = file)
       }
     )
     
