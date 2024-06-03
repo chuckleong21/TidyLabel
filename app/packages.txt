@@ -9,15 +9,20 @@ jsonlite
 
 # if deploying shiny based applications:
 shiny
+shinyjs
+shinyWidgets
 
 # html tags
 htmltools
 
+# string distance
+tidystringdist
+
 # ms excel and word and table
 officer
 flextable
-readxl
 openxlsx
+openxlsx2
 
 # data wrangling
 purrr
@@ -37,6 +42,7 @@ tippy
 # Other Dependencies
 markdown
 rstudioapi
+gt
 
 # translation
 shiny.i18n
