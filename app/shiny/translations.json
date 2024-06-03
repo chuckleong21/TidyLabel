@@ -134,6 +134,26 @@
           "zh": "税费版本"
         },
         {
+          "en": "Label Validation", 
+          "zh": "标签对照"
+        },
+        {
+          "en": "Prev", 
+          "zh": "上一个"
+        },
+        {
+          "en": "Next", 
+          "zh": "下一个"
+        },
+        {
+          "en": "Enable Validation", 
+          "zh": "开启对照"
+        },
+        {
+          "en": "Upload List File", 
+          "zh": "箱单文件"
+        },
+        {
             "en": "About This App",
             "zh": "关于"
         }
