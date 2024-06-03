@@ -27,14 +27,12 @@ tidyLabelServer <- function(id, i18n) {
     
     file_upload <- reactive({
       req(input$file$datapath)
-      sheets <- readxl::excel_sheets(input$file$datapath)
-      map(seq_along(sheets), \(i) readxl::read_excel(input$file$datapath, sheet = i)) %>% 
-        setNames(nm = sheets)
+      readxl::excel_sheets(input$file$datapath)
     })
     
     output$selectSheet <- renderUI({
       req(input$file$datapath)
-      selectInput(inputId = ns("sheet"), label = i18n$translate("选择表格"), choices = names(file_upload()))
+      selectInput(inputId = ns("sheet"), label = i18n$translate("选择表格"), choices = file_upload())
     })
     
     output$uploadSheet <- renderUI({
@@ -49,10 +47,15 @@ tidyLabelServer <- function(id, i18n) {
       )
     })
     
+    label <- reactive({
+      req(input$file$datapath)
+      label_data(input$file$datapath, input$sheet)
+    })
+    
     observeEvent(input$uploadButton, {
       output$table <- renderUI({
         req(input$file)
-        renderTable(file_upload()[input$sheet])
+        renderTable(label())
       })
     })
     
@@ -63,26 +66,20 @@ tidyLabelServer <- function(id, i18n) {
       })
     })
     
-    tidytbl <- eventReactive(input$tidyNow, {
-      # input$tidyNow
-      x <- file_upload()[[input$sheet]]
-      purrr::map(seq(0, ncol(x) - 2, 2), \(i) x[, 1:2 + i])
-    })
-    
     output_table_list <- reactive({
       tagList(
-        h3(i18n$translate("共整理"), strong(length(tidytbl())), i18n$translate("个表格")),
+        h3(i18n$translate("共整理"), strong(length(label())), i18n$translate("个表格")),
         hr(),
-        lapply(seq_along(tidytbl()), function(x) {
+        lapply(seq_along(label()), function(x) {
           output[[paste0("table_", x)]] <- renderUI({
             tagList(
               h6(i18n$translate("表格"), x, ":"), 
-              br(), renderTable(tidytbl()[x])
+              br(), renderTable(label()[x])
             )
           })
         })
-      )}
-    )
+      )
+    })
     
     observeEvent(input$tidyNow, {
       output$table <- renderUI({
@@ -134,16 +131,16 @@ tidyLabelServer <- function(id, i18n) {
       if(input$exportFileType == ".xlsx") {
         wb <- openxlsx::createWorkbook()
         
-        for(i in seq_along(tidytbl())) {
+        for(i in seq_along(label())) {
           openxlsx::addWorksheet(wb = wb, sheetName = paste("Sheet", i))
-          openxlsx::writeData(wb = wb, x = tidytbl()[i], sheet = i)
+          openxlsx::writeData(wb = wb, x = label()[i], sheet = i)
         }
         return(wb)
       }
       
       if(input$exportFileType == ".docx") {
         # select every two columns before converting into themed flextables and conserve
-        tidy_flextbl <- imap(tidytbl(), \(x, y) {
+        tidy_flextbl <- imap(label(), \(x, y) {
           x %>% 
             flextable(cwidth = 3) %>% 
             set_table_properties(layout = "autofit") %>%
@@ -159,7 +156,7 @@ tidyLabelServer <- function(id, i18n) {
         progress <- shiny::Progress$new()
         progress$set(message = paste0(i18n$translate("汇编至Word"), "："), value = 0)
         iwalk(rev(tidy_flextbl), \(x, y) {
-          progress$set(value = y / length(tidytbl()), detail = sprintf("%g%%", round(y / length(tidytbl()), 2) * 100))
+          progress$set(value = y / length(label()), detail = sprintf("%g%%", round(y / length(label()), 2) * 100))
           
           if(y != 1) {
             doc %>% 
@@ -232,6 +229,10 @@ tidyLabelServer <- function(id, i18n) {
         }
         if(input$exportFileType == ".xlsx") openxlsx::saveWorkbook(wb = export_document(), file = file)
       }
+    )
+    
+    return(
+      list(path = reactive(input$file$datapath), sheet = reactive(input$sheet), data = label)
     )
     
     session$onSessionEnded(function() {
