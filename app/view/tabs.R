@@ -122,7 +122,6 @@ server <- function(id, ...) {
           summary = reactive(input$summ),
           code = reactive(input$taxCode)
         )
-        invisible(c(input$taxCode, input$summ))
         exported <- components$export_view(
           id = "tax",
           input = input,
