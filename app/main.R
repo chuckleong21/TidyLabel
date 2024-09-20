@@ -1,7 +1,7 @@
 box::use(
   shiny[fluidPage, titlePanel, navlistPanel, tabPanel,
         icon, img, div, p, a,
-        reactive,
+        reactive, isolate,
         moduleServer, NS, renderUI, tags, uiOutput],
   tippy[tippy]
 )
@@ -60,5 +60,11 @@ server <- function(id) {
     })
     tabs$server("label")
     tabs$server("tax", version = reactive(input$pdfVersion))
+    
+    # session is an environment object and treated as reactives
+    session$onSessionEnded(function() {
+      tax <- paste("www", isolate(session$input$file$name), sep = .Platform$file.sep)
+      if(file.exists(tax)) file.remove(tax)
+    })
   })
 }

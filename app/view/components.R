@@ -128,7 +128,7 @@ filter_view <- function(input, output, session, tbl, summary = NULL, code = NULL
 }
 
 #' @export
-export_view <- function(id, filename, input, output, session, ...) {
+export_view <- function(id, input, output, session, ...) {
   ns <- session$ns
   
   if(id == "label") {
@@ -167,8 +167,8 @@ export_view <- function(id, filename, input, output, session, ...) {
     tidyup$header_sub(x$table(), x$header())
   })
   export_file_name <- reactive({
-    if(nchar(filename()) != 0) {
-      gsub(paste0(id, "-"), "", filename())
+    if(nchar(input$filename) != 0) {
+      gsub(paste0(id, "-"), "", input$filename)
     } else {
       "导出"
     }

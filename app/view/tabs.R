@@ -1,6 +1,6 @@
 box::use(
   shiny[NS, tagList, fluidRow, column, h3, 
-        fileInput,
+        fileInput, downloadHandler,
         selectInput,
         uiOutput, renderUI, renderTable,
         verbatimTextOutput, renderPrint,
@@ -10,7 +10,8 @@ box::use(
         Progress,
         moduleServer],
   tabulapdf[get_n_pages], 
-  dplyr[rename]
+  dplyr[rename],
+  openxlsx2[write_xlsx]
 )
 
 box::use(
@@ -62,14 +63,14 @@ server <- function(id, ...) {
       observe({
         req(input$file)
         components$table_view(id = id, pdf = TRUE, input = input, output = output)
+        components$param_view(
+          id = id, 
+          input = input, 
+          output = output, 
+          session = session 
+        )
       })
       
-      components$param_view(
-        id = id, 
-        input = input, 
-        output = output, 
-        session = session 
-      )
       tidied <- eventReactive(input$tidyButton, {
         req(input$file)
         progress <- Progress$new()
@@ -97,23 +98,26 @@ server <- function(id, ...) {
       
       observeEvent(input$tidyButton, {
         components$table_view(
-          id = "tax", 
+          id = id, 
           input = input, 
           output = output, 
           session = session,
           table = tidied
         )
         components$config_view(
-          id = "tax", 
+          id = id, 
           choices = tidied,
           input = input, 
           output = output, 
           session = session
         )
       })
+      
       observe({
+        req(input$tidyButton)
         # must be called first for reactivity
         invisible(c(input$taxCode, input$summ))
+        
         filtered <- components$filter_view(
           input = input, 
           output = output, 
@@ -123,16 +127,20 @@ server <- function(id, ...) {
           code = reactive(input$taxCode)
         )
         exported <- components$export_view(
-          id = "tax",
+          id = id,
           input = input,
           output = output,
           session = session,
           table = filtered,
-          filename = reactive(input$filename),
           header = reactive(input$header)
         )
-        
         output$table <- renderTable(exported$result())
+        output$download <- downloadHandler(
+          filename = function() paste0(exported$saveslot(), ".xlsx"), 
+          content = function(file) {
+            write_xlsx(x = exported$result(), file = file)
+          }
+        )
       })
     }
   })
