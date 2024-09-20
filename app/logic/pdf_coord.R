@@ -1,11 +1,9 @@
-box::use(
-  purrr[map, list_flatten, map_int, set_names, map_lgl],
-  tabulapdf[extract_tables], 
-  stringr[str_detect], 
-  dplyr[case_match]
-)
-
 get_pdf_version <- function(file) {
+  box::use(
+    purrr[set_names, map, list_flatten, map_int, map_lgl],
+    tabulapdf[extract_tables], 
+    stringr[str_detect]
+  )
   version_list <- set_names(
     c("auto", "7805640197", "2540263576", "7801664214", "7816168667"), 
     c("Auto", 
@@ -36,9 +34,20 @@ get_pdf_version <- function(file) {
 }
 
 get_coordinates <- function(file, n, version = NULL) {
+  box::use(
+    dplyr[case_match]
+  )
   version <- version %||% get_pdf_version(file)$version
   if(n == 1) {
     if(version %in% c("7801664214", "7805640197")) {
+      # In a version,
+      # The list has 3 levels: property level - level 1
+      # Coordinates divergence level - level 2: 
+      # some properties may have more than one coordinate combination
+      # for a version that has two different kinds of coordinates
+      # Coordinates level - level 3: 
+      # <Coordinates> is a list object containing a numeric vector of length 4 
+      # representing the top, right, bottom, left
       id       <- list(list(c(339.2, 347.58, 351.66, 365.78)))
       hs_code  <- list(list(c(336.3251, 385.9036, 351.6561, 452.9770)))
       weight   <- list(list(c(361.24, 452.02, 378.49, 528.67)))
@@ -73,8 +82,6 @@ get_coordinates <- function(file, n, version = NULL) {
       )
     }
   } else {
-    # The list has 3 levels:
-    # 
     id <- switch (version,
                   "7801664214" = map(seq_len(3) - 1, \(i) list(c(101.57+166*i, 341.74, 117.86+166*i, 364.87))), 
                   "2540263576" = map(seq_len(3) - 1, \(i) list(c(91.12742 + 161.89*i, 348.26906, 110.15927 + 161.89*i, 375.09044))),

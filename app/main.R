@@ -3,7 +3,8 @@ box::use(
         icon, img, div, p, a,
         reactive, isolate,
         moduleServer, NS, renderUI, tags, uiOutput],
-  tippy[tippy]
+  tippy[tippy], 
+  
 )
 
 box::use(
@@ -26,13 +27,19 @@ ui <- function(id) {
     tabs$ui(ns("tax"))
   )
   
+  changelog_tab <- tabPanel(
+    title = "版本更新", 
+    tabs$ui(ns("news"))
+  )
+  
   fluidPage(
     tags$link(rel = "stylesheet", href = "static/css/app.min.css"),
     titlePanel(title = "TidyLabel"), 
     uiOutput(ns("header")),
     navlistPanel(
       tidylabel_tab,
-      tidytax_tab
+      tidytax_tab, 
+      changelog_tab
     )
   )
 }
@@ -54,12 +61,13 @@ server <- function(id) {
             a("@chuckleong21", href = "https://github.com/chuckleong21/TidyLabel")
           ),
           tippy(element = div(class = "contact-detail", icon_wechat, "@chuckleong21"),
-                content = "<img src='/qrcode.jpg' width='190' height=259>")
+                content = "<img src='static/qrcode.jpg' width='190' height=259>")
         )
       )
     })
     tabs$server("label")
     tabs$server("tax", version = reactive(input$pdfVersion))
+    tabs$server("news")
     
     # session is an environment object and treated as reactives
     session$onSessionEnded(function() {

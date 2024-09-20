@@ -81,7 +81,7 @@ param_view <- function(id, input, output, session, ...) {
 config_view <- function(id, choices = NULL, input, output, session) {
   ns <- session$ns
   
-  if(id == "table") {
+  if(id == "label") {
     invisible()
   }
   

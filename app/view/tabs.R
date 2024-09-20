@@ -7,7 +7,7 @@ box::use(
         conditionalPanel, 
         checkboxInput, checkboxGroupInput,
         reactive, observe, req, eventReactive, observeEvent, 
-        Progress,
+        Progress, includeMarkdown,
         moduleServer],
   tabulapdf[get_n_pages], 
   dplyr[rename],
@@ -26,7 +26,7 @@ box::use(
 ui <- function(id) {
   ns <- NS(id)
   
-  tagList(
+  main <- tagList(
     fluidRow(
       column(
         width = 4,
@@ -43,6 +43,13 @@ ui <- function(id) {
       )
     )
   )
+  
+  newslog <- uiOutput(ns("update"))
+  
+  if(id %in% paste0("app-", c("label", "tax", "validation"))) 
+    return(main)
+  
+  if(id == "app-news") return(newslog)
 }
 
 #' @export
@@ -141,6 +148,14 @@ server <- function(id, ...) {
             write_xlsx(x = exported$result(), file = file)
           }
         )
+      })
+    }
+    
+    if(id == "news") {
+      observe({
+        output$update <- renderUI({
+          includeMarkdown("app/static/changelog-en.md")
+        })
       })
     }
   })
