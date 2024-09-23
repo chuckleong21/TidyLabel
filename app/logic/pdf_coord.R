@@ -33,11 +33,104 @@ get_pdf_version <- function(file) {
   list(version = unname(version), org = names(version))
 }
 
+as_tibble <- function(x, ...) {
+  UseMethod("as_tibble")
+}
+
+# coordinates method for generic "as_tibble"
+as_tibble.coordinates <- function(x) {
+  box::use(
+    purrr[map, list_rbind, map2],
+    tibble[as_tibble],
+    dplyr[mutate],
+    tidyr[pivot_longer, pivot_wider]
+  )
+  
+  positions <- c("top", "left", "bottom", "right")
+  if(attr(x, "version") %in% c("7801664214", "2540263576", "7805640197")) {
+    if(attr(x, "first")) {
+      x |> 
+        map(~.x[[1]][[1]]) |> 
+        as_tibble() |>
+        mutate(version = attr(x, "version"), 
+               first = attr(x, "first"),
+               position = positions) |>
+        pivot_longer(id:tax, 
+                     names_to = "property", 
+                     values_to = "value") |>
+        pivot_wider(names_from = position, 
+                    values_from = value)
+    } else {
+      map(1:3, \(i) {
+        x |>
+          map(~.x[[i]][[1]]) |> 
+          as_tibble() |> 
+          mutate(version = attr(x, "version"), 
+                 first = attr(x, "first"),
+                 position = positions) |>
+          pivot_longer(id:tax, 
+                       names_to = "property", 
+                       values_to = "value") |>
+          pivot_wider(names_from = position, 
+                      values_from = value)
+      }) |> list_rbind()
+    }
+  } else if(attr(x, "version") == "7816168667") {
+    if(attr(x, "first")) {
+      map(1:2, \(i, j) {
+        x |>
+          map(~.x[[i]][[1]][[1]]) |>
+          as_tibble() |> 
+          mutate(version = attr(x, "version"), 
+                 first = attr(x, "first"), 
+                 type = LETTERS[i],
+                 position = positions) |>
+          pivot_longer(id:tax, 
+                       names_to = "property", 
+                       values_to = "value") |>
+          pivot_wider(names_from = position, 
+                      values_from = value)
+      }) |> 
+        list_rbind()
+    } else {
+      map2(rep(1:2, each = 3), rep(1:3, 2), \(i, j) {
+        x |> 
+          map(~.x[[i]][[j]][[1]]) |> 
+          as_tibble() |> 
+          mutate(version = attr(x, "version"), 
+                 first = attr(x, "first"), 
+                 type = LETTERS[i],
+                 position = c("top", "left", "bottom", "right")) |>
+          pivot_longer(id:tax, 
+                       names_to = "property", 
+                       values_to = "value") |>
+          pivot_wider(names_from = position, 
+                      values_from = value)
+      }) |> list_rbind()
+    }
+  } else x
+}
+
+# coordinates method for generic "print"
+print.coordinates <- function(x, ...) {
+  print(as_tibble(x))
+}
+
+
 get_coordinates <- function(file, n, version = NULL) {
   box::use(
-    dplyr[case_match]
+    dplyr[case_match],
+    purrr[map, list_rbind]
   )
-  version <- version %||% get_pdf_version(file)$version
+  
+  if(!missing(file)) {
+    version <- version %||% get_pdf_version(file)$version
+  } else {
+    if(is.null(version)) {
+      stop('argument "file" is missing with no default', call. = FALSE)
+    }
+  }
+  
   if(n == 1) {
     if(version %in% c("7801664214", "7805640197")) {
       # In a version,
@@ -61,79 +154,79 @@ get_coordinates <- function(file, n, version = NULL) {
       tax      <- list(list(c(528.7645, 221.8254, 621.6815, 291.7526)))
     } else if(version %in% "7816168667") {
       id       <- list(
-        list(list(c(335.3669, 340.8686, 353.5725, 360.9906))), 
-        list(list(c(363.0466, 333.9005, 380.2890, 357.8481)))
+        list(c(335.3669, 340.8686, 353.5725, 360.9906)), 
+        list(c(363.0466, 333.9005, 380.2890, 357.8481))
       )
       hs_code  <- list(
-        list(list(c(336.3251, 379.1962, 350.6980, 446.2696))),
-        list(list(c(362.0887, 370.3009, 378.3732, 435.4386)))
+        list(c(336.3251, 379.1962, 350.6980, 446.2696)),
+        list(c(362.0887, 370.3009, 378.3732, 435.4386))
       )
       weight   <- list(
-        list(list(c(361.2381, 445.3114, 378.4855, 524.8413))), 
-        list(list(c(385.0785, 436.3965, 401.3629, 524.5239)))
+        list(c(361.2381, 445.3114, 378.4855, 524.8413)), 
+        list(c(385.0785, 436.3965, 401.3629, 524.5239))
       )
       tax_code <- list(
-        list(list(c(507.84130, 62.03498, 601.74403, 86.94795))), 
-        list(list(c(529.72241,  46.52844, 622.63936,  77.18146)))
+        list(c(507.84130, 62.03498, 601.74403, 86.94795)), 
+        list(c(529.72241,  46.52844, 622.63936,  77.18146))
       )
       tax      <- list(
-        list(list(c(507.84130, 227.8020, 601.74403, 302.5410))), 
-        list(list(c(529.7224, 218.9516, 622.6394, 291.7526)))
+        list(c(507.84130, 227.8020, 601.74403, 302.5410)), 
+        list(c(529.7224, 218.9516, 622.6394, 291.7526))
       )
     }
   } else {
     id <- switch (version,
-                  "7801664214" = map(seq_len(3) - 1, \(i) list(c(101.57+166*i, 341.74, 117.86+166*i, 364.87))), 
-                  "2540263576" = map(seq_len(3) - 1, \(i) list(c(91.12742 + 161.89*i, 348.26906, 110.15927 + 161.89*i, 375.09044))),
-                  "7805640197" = map(seq_len(3) - 1, \(i) list(c(107.2754+172.0468*i, 346.5086, 120.6848+172.0468*i, 367.5805))),
+                  "7801664214" = list(map(seq_len(3) - 1, \(i) list(c(101.57+166*i, 341.74, 117.86+166*i, 364.87)))), 
+                  "2540263576" = list(map(seq_len(3) - 1, \(i) list(c(91.12742 + 161.89*i, 348.26906, 110.15927 + 161.89*i, 375.09044)))),
+                  "7805640197" = list(map(seq_len(3) - 1, \(i) list(c(107.2754+172.0468*i, 346.5086, 120.6848+172.0468*i, 367.5805)))),
                   "7816168667" = list(
                     map(seq_len(3) - 1, \(i) list(c(101.57+166*i, 341.74, 117.86+166*i, 364.87))), 
                     map(seq_len(3) - 1, \(i) list(c(130.2753+160.5*i, 348.2691, 145.6018+160.5*i, 385.6274)))
                   )
     )
     hs_code <- switch (version,
-                       "7801664214" = map(seq_len(3) - 1, \(i) list(c(102.53+166*i, 380.07, 115.94+166*i, 431.9))), 
-                       "2540263576" = map(seq_len(3) - 1, \(i) list(c(91.12742 + 161.89*i, 385.6291, 110.15927 + 161.89*i, 447.9004))),
-                       "7805640197" = map(seq_len(3) - 1, \(i) list(c(108.2332+172.4068*i, 382.9056, 120.6848+172.4068*i, 450.9105))),
+                       "7801664214" = list(map(seq_len(3) - 1, \(i) list(c(102.53+166*i, 380.07, 115.94+166*i, 431.9)))), 
+                       "2540263576" = list(map(seq_len(3) - 1, \(i) list(c(91.12742 + 161.89*i, 385.6291, 110.15927 + 161.89*i, 447.9004)))),
+                       "7805640197" = list(map(seq_len(3) - 1, \(i) list(c(108.2332+172.4068*i, 382.9056, 120.6848+172.4068*i, 450.9105)))),
                        "7816168667" = list(
                          map(seq_len(3) - 1, \(i) list(c(101.57+166*i, 341.74, 117.86+166*i, 364.87))), 
                          map(seq_len(3) - 1, \(i) list(c(128.3595 + 160.5*i, 384.6695, 143.6860 + 160.5*i, 500.5762)))
                        )
     )
     weight <- switch (version,
-                      "7801664214" = map(seq_len(3) - 1, \(i) list(c(126.48+166*i, 449.14, 141.81+166*i, 526.76))), 
-                      "2540263576" = map(seq_len(3) - 1, \(i) list(c(114.1274 + 161.89*i, 442.1441, 133.1593 + 161.89*i, 523.5704))),
-                      "7805640197" = map(seq_len(3) - 1, \(i) list(c(129.3051+172.0468*i, 451.8683, 146.5458+172.0468*i, 530.4092))), 
+                      "7801664214" = list(map(seq_len(3) - 1, \(i) list(c(126.48+166*i, 449.14, 141.81+166*i, 526.76)))), 
+                      "2540263576" = list(map(seq_len(3) - 1, \(i) list(c(114.1274 + 161.89*i, 442.1441, 133.1593 + 161.89*i, 523.5704)))),
+                      "7805640197" = list(map(seq_len(3) - 1, \(i) list(c(129.3051+172.0468*i, 451.8683, 146.5458+172.0468*i, 530.4092)))), 
                       "7816168667" = list(
                         map(seq_len(3) - 1, \(i) list(c(101.57+166*i, 341.74, 117.86+166*i, 364.87))), 
                         map(seq_len(3) - 1, \(i) list(c(152.3072 + 160.5*i, 443.1018, 166.6758 + 160.5*i, 522.6081)))
                       )
     )
     tax_code <- switch (version,
-                        "7801664214" = map(seq_len(3), \(i) {
+                        "7801664214" = list(map(seq_len(3), \(i) {
                           top = 604.62; left = 61.08; bottom = 695.65; right = 89.82
                           x = 257.8; y = 119.5
                           case_match(i, 
                                      1 ~ list(c(top, left, bottom, right)), 
                                      2 ~ list(c(top, left + x, bottom, right + x)), 
                                      3 ~ list(c(top + y, left, bottom + y, right)))
-                        }), 
-                        "2540263576" = map(seq_len(3), \(i) {
+                        })), 
+                        "2540263576" = list(map(seq_len(3), \(i) {
                           top = 585.28100; left = 61.85495; bottom = 676.28214; right = 90.59215
                           x = 257.677; y = 116.8646 
                           case_match(i, 
                                      1 ~ list(c(top,  left, bottom,  right)), 
                                      2 ~ list(c(top, left + x, bottom, right + x)), 
                                      3 ~ list(c(top + y,  left, bottom + y,  right)))
-                        }),
-                        "7805640197" = map(seq_len(3), \(i) {
+                        })),
+                        "7805640197" = list(map(seq_len(3), \(i) {
                           top = 634.07398; left = 56.29045; bottom = 706.8680; right = 86.94055
                           x = 265.315; y = 95.8
                           case_match(i, 
                                      1 ~ list(c(top,  left, bottom,  right)), 
                                      2 ~ list(c(top, left + x, bottom, right + x)), 
                                      3 ~ list(c(top + y,  left, bottom + y,  right)))
-                        }), 
+                        })), 
                         "7816168667" = list(
                           map(seq_len(3), \(i) {
                             top = 604.62; left = 61.08; bottom = 695.65; right = 89.82
@@ -154,29 +247,29 @@ get_coordinates <- function(file, n, version = NULL) {
                         )
     )
     tax <- switch (version,
-                   "7801664214" = map(seq_len(3), \(i) {
+                   "7801664214" = list(map(seq_len(3), \(i) {
                      top = 604.62; left = 230.68; bottom = 695.65; right = 302.54
                      case_match(i, 
                                 1 ~ list(c(top, left, bottom, right)), 
                                 2 ~ list(c(top, left + 257.8, bottom, right + 257.8)), 
                                 3 ~ list(c(top + 117, left, bottom + 117, right)))
-                   }), 
-                   "2540263576" = map(seq_len(3), \(i) {
+                   })), 
+                   "2540263576" = list(map(seq_len(3), \(i) {
                      top = 585.28100; left = 233.3203; bottom = 676.28214; right = 306.1212
                      x = 257.677; y = 116.8646
                      case_match(i, 
                                 1 ~ list(c(top, left, bottom, right)), 
                                 2 ~ list(c(top, left + x, bottom, right + x)), 
                                 3 ~ list(c(top + y, left, bottom + y, right)))
-                   }),
-                   "7805640197" = map(seq_len(3), \(i) {
+                   })),
+                   "7805640197" = list(map(seq_len(3), \(i) {
                      top = 634.0740; left = 228.6973; bottom = 706.8680; right = 298.6178
                      x = 265.315; y = 95.8
                      case_match(i, 
                                 1 ~ list(c(top, left, bottom, right)), 
                                 2 ~ list(c(top, left + x, bottom, right + x)), 
                                 3 ~ list(c(top + y, left, bottom + y, right)))
-                   }), 
+                   })), 
                    "7816168667" = list(
                      map(seq_len(3), \(i) {
                        top = 604.62; left = 230.68; bottom = 695.65; right = 302.54
@@ -197,6 +290,17 @@ get_coordinates <- function(file, n, version = NULL) {
                    )
     )
   }
-  list(id = id, hs_code = hs_code, weight = weight, tax_code = tax_code, tax = tax)
+  
+  
+  structure(
+  list(id = id, 
+       hs_code = hs_code, 
+       weight = weight, 
+       tax_code = tax_code, 
+       tax = tax),
+  class = "coordinates", 
+  version = version,
+  first = n == 1
+  )
 }
 
