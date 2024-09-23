@@ -33,90 +33,6 @@ get_pdf_version <- function(file) {
   list(version = unname(version), org = names(version))
 }
 
-as_tibble <- function(x, ...) {
-  UseMethod("as_tibble")
-}
-
-# coordinates method for generic "as_tibble"
-as_tibble.coordinates <- function(x) {
-  box::use(
-    purrr[map, list_rbind, map2],
-    tibble[as_tibble],
-    dplyr[mutate],
-    tidyr[pivot_longer, pivot_wider]
-  )
-  
-  positions <- c("top", "left", "bottom", "right")
-  if(attr(x, "version") %in% c("7801664214", "2540263576", "7805640197")) {
-    if(attr(x, "first")) {
-      x |> 
-        map(~.x[[1]][[1]]) |> 
-        as_tibble() |>
-        mutate(version = attr(x, "version"), 
-               first = attr(x, "first"),
-               position = positions) |>
-        pivot_longer(id:tax, 
-                     names_to = "property", 
-                     values_to = "value") |>
-        pivot_wider(names_from = position, 
-                    values_from = value)
-    } else {
-      map(1:3, \(i) {
-        x |>
-          map(~.x[[i]][[1]]) |> 
-          as_tibble() |> 
-          mutate(version = attr(x, "version"), 
-                 first = attr(x, "first"),
-                 position = positions) |>
-          pivot_longer(id:tax, 
-                       names_to = "property", 
-                       values_to = "value") |>
-          pivot_wider(names_from = position, 
-                      values_from = value)
-      }) |> list_rbind()
-    }
-  } else if(attr(x, "version") == "7816168667") {
-    if(attr(x, "first")) {
-      map(1:2, \(i, j) {
-        x |>
-          map(~.x[[i]][[1]][[1]]) |>
-          as_tibble() |> 
-          mutate(version = attr(x, "version"), 
-                 first = attr(x, "first"), 
-                 type = LETTERS[i],
-                 position = positions) |>
-          pivot_longer(id:tax, 
-                       names_to = "property", 
-                       values_to = "value") |>
-          pivot_wider(names_from = position, 
-                      values_from = value)
-      }) |> 
-        list_rbind()
-    } else {
-      map2(rep(1:2, each = 3), rep(1:3, 2), \(i, j) {
-        x |> 
-          map(~.x[[i]][[j]][[1]]) |> 
-          as_tibble() |> 
-          mutate(version = attr(x, "version"), 
-                 first = attr(x, "first"), 
-                 type = LETTERS[i],
-                 position = c("top", "left", "bottom", "right")) |>
-          pivot_longer(id:tax, 
-                       names_to = "property", 
-                       values_to = "value") |>
-          pivot_wider(names_from = position, 
-                      values_from = value)
-      }) |> list_rbind()
-    }
-  } else x
-}
-
-# coordinates method for generic "print"
-print.coordinates <- function(x, ...) {
-  print(as_tibble(x))
-}
-
-
 get_coordinates <- function(file, n, version = NULL) {
   box::use(
     dplyr[case_match],
@@ -304,3 +220,53 @@ get_coordinates <- function(file, n, version = NULL) {
   )
 }
 
+as_tibble <- function(x) {
+  UseMethod("as_tibble")
+}
+
+as_tibble.coordinates <- function(x) {
+  box::use(
+    purrr[map, list_rbind, map2, map_vec],
+    tibble[as_tibble],
+    dplyr[mutate],
+    tidyr[pivot_longer, pivot_wider]
+  )
+  
+  len <- seq_len(unique(map_vec(x, length)))
+  positions <- c("top", "left", "bottom", "right")
+  if(attr(x, "first")) {
+    print(
+      map(len, \(i) {
+        x |> 
+          map(~.x[[i]][[1]]) |> 
+          as_tibble() |> 
+          mutate(version = attr(x, "version"),
+                 first = attr(x, "first"),
+                 type = LETTERS[i], 
+                 position = positions) |>
+          pivot_longer(id:tax, 
+                       names_to = "property", 
+                       values_to = "value") |>
+          pivot_wider(names_from = position, 
+                      values_from = value)
+      }) |> 
+        list_rbind()
+    )
+  } else {
+    map2(rep(len, each = 3), rep(1:3, length(len)), \(i, j) {
+      x |> 
+        map(~.x[[i]][[j]][[1]]) |> 
+        as_tibble() |> 
+        mutate(version = attr(x, "version"),
+               first = attr(x, "first"),
+               type = LETTERS[i], 
+               position = positions) |>
+        pivot_longer(id:tax, 
+                     names_to = "property", 
+                     values_to = "value") |>
+        pivot_wider(names_from = position, 
+                    values_from = value)
+    }) |> 
+      list_rbind()
+  }
+}
