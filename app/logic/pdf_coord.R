@@ -235,7 +235,6 @@ as_tibble.coordinates <- function(x) {
   len <- seq_len(unique(map_vec(x, length)))
   positions <- c("top", "left", "bottom", "right")
   if(attr(x, "first")) {
-    print(
       map(len, \(i) {
         x |> 
           map(~.x[[i]][[1]]) |> 
@@ -251,7 +250,6 @@ as_tibble.coordinates <- function(x) {
                       values_from = value)
       }) |> 
         list_rbind()
-    )
   } else {
     map2(rep(len, each = 3), rep(1:3, length(len)), \(i, j) {
       x |> 
@@ -269,4 +267,15 @@ as_tibble.coordinates <- function(x) {
     }) |> 
       list_rbind()
   }
+}
+
+load_coordinates <- function() {
+  box::use(purrr[map2, list_rbind])
+  
+  pages <- rep(1:2, length(unname(get_pdf_version())[-1]))
+  versions <- rep(unname(get_pdf_version())[-1], each = 2)
+  map2(pages, versions, \(p, v) {
+    get_coordinates(n = p, version = v) |> 
+      as_tibble()
+  }) |> list_rbind()
 }
