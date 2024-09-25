@@ -32,6 +32,11 @@ ui <- function(id) {
     tabs$ui(ns("news"))
   )
   
+  # settings_tab <- tabPanel(
+  #   title = "应用设置", 
+  #   tabs$ui(ns("settings"))
+  # )
+  
   fluidPage(
     tags$link(rel = "stylesheet", href = "static/css/app.min.css"),
     titlePanel(title = "TidyLabel"), 
@@ -39,7 +44,8 @@ ui <- function(id) {
     navlistPanel(
       tidylabel_tab,
       tidytax_tab, 
-      changelog_tab
+      changelog_tab,
+      # settings_tab
     )
   )
 }
@@ -68,6 +74,7 @@ server <- function(id) {
     tabs$server("label")
     tabs$server("tax", version = reactive(input$pdfVersion))
     tabs$server("news")
+    # tabs$server("settings")
     
     # session is an environment object and treated as reactives
     session$onSessionEnded(function() {
