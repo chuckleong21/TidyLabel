@@ -1,11 +1,11 @@
 box::use(
-  purrr[map, map_int, map_chr, imap, 
-        list_rbind, is_scalar_character], 
+  purrr[map, map_int, map_chr, imap, map_vec,
+        list_rbind, is_scalar_character, pmap], 
   tabulapdf[extract_tables],
   dplyr[as_tibble, everything, filter, if_all, 
         select, arrange, group_by, slice_min, ungroup,
-        mutate, across, count, slice_max, pull], 
-  tidyr[unnest, pivot_longer], 
+        mutate, across, count, slice_max, pull, case_when], 
+  tidyr[unnest, pivot_wider, pivot_longer, drop_na], 
   stringr[str_detect, str_extract],
   readr[parse_number], 
   tidystringdist[tidy_comb, tidy_stringdist], 
@@ -13,7 +13,9 @@ box::use(
 )
 
 box::use(
-  app/logic/pdf_coord[get_coordinates],
+  app/logic/pdf_coord[get_coordinates, 
+                      load_coordinates, 
+                      get_pdf_version],
 )
 
 get_table_pages <- function(file, updateProgress = NULL) {
@@ -34,31 +36,37 @@ get_table_pages <- function(file, updateProgress = NULL) {
 tidy_page <- function(file, page, version = NULL) {
   
   tax_code_dict <- paste0(c(1, 2, 5), "010")
-  coordinates <- get_coordinates(file, page, version = version)
-  map(coordinates, function(coor) {
-    map(coor, function(coor2) {
-      map(coor2, function(l) 
-        unlist(extract_tables(file = file, page = page, guess = FALSE, area = l, output = "matrix")))
-    })
-  }) |> 
-    as_tibble() |> 
-    unnest(everything()) |> 
-    # filter the rows containing empty vectors across columns
-    # filter the rows that have different vector lengths between tax and code columns
-    filter(if_all(everything(), ~map_int(.x, length) != 0), 
-           map_int(tax_code, length) == map_int(tax, length)) |> 
-    unnest(everything()) |> 
+  ver <- version %||% get_pdf_version(file)$version
+  coordinates <- load_coordinates() |> 
+    dplyr::filter(version %in% ver, first == (page == 1 ))
+  
+  extracts <- coordinates |>
     mutate(
-      tax_code = map_chr(tax_code, \(x) {
-        d <- which(str_detect(x, tax_code_dict))
-        ifelse(length(d) != 0, tax_code_dict[d], x)
+      extract = pmap(.l = coordinates, \(version, first, property, type, 
+                                         top, left, bottom, right) {
+        extract_tables(file = file, 
+                       page = page, guess = FALSE, 
+                       area = list(c(top, left, bottom, right)), 
+                       output = "matrix") |>
+          unlist()
       }),
-      tax_code = fuzzymatch(tax_code, tax_code_dict),
-      across(c(weight, tax), ~gsub(",", "\\.", .x)),
-      across(everything(), readr::parse_number),
-      across(c(id, tax_code), as.integer)
-    ) |> 
-    filter(!is.na(tax_code))
+      extract = map(extract, \(x) if(length(x) == 0) NA_character_ else x),
+      len = map(extract, `length<-`, max(length(extract))), 
+    ) 
+  
+  if(nrow(coordinates) %% 15 == 0) {
+    extracts <- extracts |> 
+      mutate(position = rep(rep(1:3, each = 5), nrow(coordinates) %/% 15))
+  } else {
+    extracts <- extracts |> 
+      mutate(position = 1)
+  }
+  
+  extracts |> 
+    pivot_wider(id_cols = c(type, position), names_from = property, values_from = len) |>
+    unnest(id:tax) |> 
+    drop_na(id) |> 
+    mutate(tax_code = fuzzymatch(tax_code, tax_code_dict))
 }
 
 fuzzymatch <- function(string, dict) {
@@ -95,8 +103,7 @@ tidyup <- function(file, page = NULL, version = NULL, updateProgress = NULL) {
     }
     tidy_page(file = file, page = x, version = version)
   }) |> 
-    list_rbind() |> 
-    filter(nchar(id) != 0)
+    list_rbind()
 }
 
 header_sub <- function(tbl, x) {
