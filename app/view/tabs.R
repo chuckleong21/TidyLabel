@@ -69,7 +69,10 @@ server <- function(id, ...) {
     if(id == "tax") {
       observe({
         req(input$file)
-        components$table_view(id = id, pdf = TRUE, input = input, output = output)
+        components$table_view(id = id, 
+                              pdf = TRUE, 
+                              input = input, 
+                              output = output)
         components$param_view(
           id = id, 
           input = input, 
@@ -109,7 +112,8 @@ server <- function(id, ...) {
           input = input, 
           output = output, 
           session = session,
-          table = tidied
+          table = tidied,
+          mode = "unfiltered"
         )
         components$config_view(
           id = id, 
@@ -125,11 +129,13 @@ server <- function(id, ...) {
         # must be called first for reactivity
         invisible(c(input$taxCode, input$summ))
         
-        filtered <- components$filter_view(
+        filtered <- components$table_view(
+          id = id,
           input = input, 
           output = output, 
           session = session, 
-          tbl = tidied, 
+          mode = "filter",
+          table = tidied, 
           summary = reactive(input$summ),
           code = reactive(input$taxCode)
         )

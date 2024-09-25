@@ -32,23 +32,58 @@ upload_view <- function(tab) {
 
 #' @export
 table_view <- function(id, pdf = FALSE, input, output, ...) {
-    ns <- NS(id)
-    x <- list(...)
-    
-    if(id == "tax") {
-      if(!pdf) {
-        stopifnot('Check whether "table" argument present' = "table" %in% names(x))
-        output$table <- renderTable(x$table())
-      } else {
-        # save a copy in local directory as an anchor point
-        tmp <- paste("app", "static", input$file$name, sep = .Platform$file.sep)
-        file.copy(input$file$datapath, tmp)
-        
-        output$table <- renderUI({
-          tags$iframe(style = "height:600px; width:100%", src = gsub("app/", "", tmp))
-        })
-      }
+  ns <- NS(id)
+  x <- list(...)
+  
+  if(id == "tax") {
+    if(!pdf) {
+      stopifnot('Check whether "table" argument present' = "table" %in% names(x))
+      switch(x$mode, 
+             "filter" = {
+               tidied_filter <- reactive({
+                 base_summary <- function(x) {
+                   x |>
+                     add_count(Товар, wt = Сумма, name = "Сумма") |>
+                     select(-Вид) |>
+                     distinct()
+                 }
+                 
+                 if(is.null(x$summary())) return()
+                 if(!x$summary()) {
+                   if(is.null(x$code())) {
+                     x$table()
+                   } else {
+                     filter(x$table(), !Вид %in% as.vector(x$code()))
+                   }
+                 } else if(is.null(x$code())) {
+                   base_summary(x$table())
+                 } else if(!is.null(x$code())) {
+                   filter(x$table(), !Вид %in% as.vector(x$code())) |> 
+                     base_summary()
+                 }
+               })
+               output$table <- renderTable({
+                 tidied_filter() |> 
+                   select(Товар:Сумма)
+               })
+               return(tidied_filter)
+             }, 
+             "unfiltered" = {
+               output$table <- renderTable({
+                 x$table() |> 
+                   select(Товар:Сумма)
+               })
+             })
+    } else {
+      # save a copy in local directory as an anchor point
+      tmp <- paste("app", "static", input$file$name, sep = .Platform$file.sep)
+      file.copy(input$file$datapath, tmp)
+      
+      output$table <- renderUI({
+        tags$iframe(style = "height:600px; width:100%", src = gsub("app/", "", tmp))
+      })
     }
+  }
 }
 
 #' @export
@@ -97,34 +132,6 @@ config_view <- function(id, choices = NULL, input, output, session) {
     })
     
   }
-}
-
-#' @export
-filter_view <- function(input, output, session, tbl, summary = NULL, code = NULL) {
-  tidied_filter <- reactive({
-    base_summary <- function(x) {
-      x |>
-        add_count(Товар, wt = Сумма, name = "Сумма") |>
-        select(-Вид) |>
-        distinct()
-    }
-    
-    if(is.null(summary())) return()
-    if(!summary()) {
-      if(is.null(code())) {
-        tbl()
-      } else {
-        filter(tbl(), !Вид %in% as.vector(code()))
-      }
-    } else if(is.null(code())) {
-      base_summary(tbl())
-    } else if(!is.null(code())) {
-      filter(tbl(), !Вид %in% as.vector(code())) |> base_summary()
-    }
-  })
-  
-  output$table <- renderTable(tidied_filter())
-  tidied_filter
 }
 
 #' @export
